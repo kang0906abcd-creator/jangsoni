@@ -85,6 +85,43 @@
     .picker .grp-name { font-weight: bold; color: #222222; font-size: 0.8rem; }
     .picker .grp-name small { font-weight: normal; color: #888888; margin-left: 6px; }
     .picker .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    /* 처음 화면: 검토 유형 · 유형별 입력 상자 · 쟁점 자동 추천 */
+    .case-form select { padding: 9px 10px; border: 1px solid #CCCCCC; border-radius: 6px; font: inherit; font-size: 0.95rem; font-weight: normal; color: #222222; background: #fff; }
+    .case-form .span2 { grid-column: span 2; }
+    .case-form small.opt { font-weight: normal; color: #999999; }
+    .review-types { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .type-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 14px; border: 1.5px solid #E5E5E5; border-radius: 8px; background: #fff; color: #888888; font: inherit; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
+    .type-btn small { font-size: 0.72rem; font-weight: normal; }
+    .type-btn.on { border-color: #FF7A29; background: #FFF1E8; color: #c2410c; }
+    .type-btn.on .t::before { content: "✓ "; }
+    .review-box { grid-column: 1 / -1; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; padding: 12px 14px 14px; border: 1px solid #FFD2B5; border-radius: 8px; background: #FFFCFA; }
+    .review-box[hidden] { display: none; }
+    .review-box legend { padding: 0 6px; font-weight: bold; color: #c2410c; font-size: 0.9rem; }
+    .review-box legend small { color: #999999; font-weight: normal; }
+    .review-box .hist, .review-box .notify-box { grid-column: 1 / -1; }
+    .hist { display: flex; flex-direction: column; gap: 6px; }
+    .hist-head { font-size: 0.85rem; font-weight: bold; color: #666666; }
+    .hist-head small, .notify-box summary small, .issue-head small { font-weight: normal; color: #999999; font-size: 0.78rem; }
+    .hist-row { display: grid; grid-template-columns: 140px 1fr 1fr 28px; gap: 6px; }
+    .hist-row input, .hist-row select { padding: 7px 8px; font-size: 0.85rem; min-width: 0; }
+    .hist-row .del { border: none; background: none; color: #999999; cursor: pointer; font-size: 1rem; }
+    .pick-btn.add { align-self: flex-start; padding: 5px 10px; }
+    .notify-box summary { cursor: pointer; font-size: 0.85rem; font-weight: bold; color: #666666; }
+    .notify-box[open] summary { margin-bottom: 8px; }
+    .notify-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; margin-bottom: 8px; }
+    .issue-box { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid #E5E5E5; border-radius: 8px; background: #FAFAFA; }
+    .issue-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.9rem; color: #222222; }
+    .issue-head .pick-btn { margin-left: auto; padding: 5px 10px; }
+    #issue-auto { display: flex; flex-direction: column; gap: 4px; }
+    .case-form .issue-item { display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; color: #444444; font-weight: normal; cursor: pointer; flex-direction: row; }
+    .issue-item input { margin-top: 3px; accent-color: #FF7A29; }
+    .issue-item b { color: #222222; white-space: nowrap; }
+    .issue-item .why { color: #777777; }
+    .issue-item.off b, .issue-item.off .why { color: #BBBBBB; text-decoration: line-through; }
+    .issue-item .src { flex: none; font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; background: #EEEEEE; color: #777777; margin-top: 2px; }
+    .issue-item .src.auto { background: #FFE4D2; color: #c2410c; }
+    .issue-empty { font-size: 0.82rem; color: #999999; }
+    @media (max-width: 560px) { .case-form .span2 { grid-column: auto; } .hist-row { grid-template-columns: 1fr 1fr; } }
     /* 메뉴 버튼 아래 자동검색 결과: "항목명 | 값" 줄로 짧게 */
     .auto-result {
       display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; align-items: baseline;
@@ -596,22 +633,73 @@
 
     <!-- 사건 정보 입력: 시작하기를 누르면 이 값으로 각 메뉴를 자동 검색 -->
     <form id="case-form" class="case-form" autocomplete="off">
-      <!-- 대표상품: 누르면 상품명에 바로 들어감 (장기 인보험 주력 상품) -->
+      <!-- ① 검토 유형: 고른 유형에 필요한 칸만 펼침 (둘 다 고를 수 있음) -->
+      <div class="review-types" role="group" aria-label="검토 유형">
+        <span class="pick-label">검토 유형</span>
+        <button type="button" class="type-btn on" data-review="contract" aria-pressed="true"><span class="t">계약체결 적정성</span><small>고지의무 · 통지의무</small></button>
+        <button type="button" class="type-btn on" data-review="pay" aria-pressed="true"><span class="t">담보 지급 적정성</span><small>지급사유 · 면책 · 감액</small></button>
+      </div>
+
+      <!-- ② 공통 사실관계 -->
       <div class="pick-row" id="product-chips"><span class="pick-label">대표상품</span></div>
       <label>상품명<input id="in-product" type="text" list="product-list" placeholder="2글자 이상 치면 공시실 상품을 찾아 줘요"></label>
-      <label>보험 가입일<input id="in-date" type="date"></label>
-      <label>기고지 직업<span class="with-btn"><input id="in-job" type="text" list="job-list" value="총무 사무원" placeholder="예) 총무 사무원"><button type="button" class="pick-btn" data-picker="job-picker">분류</button></span></label>
+      <label>가입일 (청약일)<input id="in-date" type="date"></label>
+      <label>사고·진단일<input id="in-event" type="date"></label>
       <label>진단코드<input id="in-code" type="text" list="kcd-list" placeholder="예) I21"></label>
-      <label>담보명<input id="in-cover" type="text" list="intro-cover-list" placeholder="상품명을 넣으면 약관의 담보에서 골라요"></label>
-      <label>쟁점<span class="with-btn"><input id="in-issue" type="text" list="issue-list" value="고지의무 위반" placeholder="예) 고지의무 위반"><button type="button" class="pick-btn" data-picker="issue-picker">목록</button></span></label>
-      <!-- 직업 고르기: 통계청 한국표준직업분류 대분류 탭 → 중분류별 대표 직업 -->
-      <div id="job-picker" class="picker" hidden></div>
-      <!-- 쟁점 고르기: 장기 인보험 손해사정의 대표 쟁점을 단계별로 -->
-      <div id="issue-picker" class="picker" hidden></div>
+      <label class="span2">청구 담보<input id="in-cover" type="text" list="intro-cover-list" placeholder="상품명을 넣으면 약관의 담보에서 골라요"></label>
       <datalist id="product-list"></datalist>
       <datalist id="job-list"></datalist>
       <!-- 상품 약관: 상품명·가입일을 넣으면 바로 공시실 약관을 받아, 담보명은 그 약관의 특약 중에서만 고르게 함 -->
       <div id="intro-yak" class="intro-yak" hidden></div>
+
+      <!-- ③ 계약체결 적정성: 고지의무(청약 유형·계약 변경일·가입 전 병력) + 통지의무(직업 변경) -->
+      <fieldset class="review-box" data-for="contract">
+        <legend>계약체결 적정성 <small>고지의무</small></legend>
+        <label>청약 유형
+          <select id="in-applytype">
+            <option value="normal">일반 심사</option>
+            <option value="simple">간편 심사 (3.10.10 · 3.5.5 등)</option>
+            <option value="diag">진단 계약 (가입 때 건강진단)</option>
+          </select>
+        </label>
+        <label>계약 변경일 <small class="opt">부활·담보 추가 (있을 때만)</small><input id="in-changedate" type="date"></label>
+        <div class="hist">
+          <div class="hist-head">가입 전 병력 <small>진단·치료 시기와 내용 · 고지 대상 기간 안인지 자동으로 봐요</small></div>
+          <div id="in-hist"></div>
+          <button type="button" class="pick-btn add" id="in-hist-add">+ 병력 추가</button>
+        </div>
+        <details id="notify-box" class="notify-box">
+          <summary>통지의무 <small>직업·직무 변경 · 상해·재해 담보일 때 자동으로 펼쳐요</small></summary>
+          <div class="notify-grid">
+            <label>가입 때 알린 직업<span class="with-btn"><input id="in-job" type="text" list="job-list" value="총무 사무원" placeholder="예) 총무 사무원"><button type="button" class="pick-btn" data-picker="job-picker" data-target="in-job">분류</button></span></label>
+            <label>사고 당시 직업<span class="with-btn"><input id="in-job1" type="text" list="job-list" placeholder="바뀌었으면 입력 (예: 택배 배송기사)"><button type="button" class="pick-btn" data-picker="job-picker" data-target="in-job1">분류</button></span></label>
+          </div>
+          <!-- 직업 고르기: 통계청 한국표준직업분류 대분류 탭 → 중분류별 대표 직업 -->
+          <div id="job-picker" class="picker" hidden></div>
+        </details>
+      </fieldset>
+
+      <!-- ③ 담보 지급 적정성 -->
+      <fieldset class="review-box" data-for="pay">
+        <legend>담보 지급 적정성</legend>
+        <label>진단 근거 검사
+          <select id="in-diagbasis">
+            <option value="">모름 · 해당 없음</option>
+            <option value="confirm">확정검사 (조직검사 · CT · MRI 등)</option>
+            <option value="screen">선별검사만 (초음파 · 혈액검사 등)</option>
+            <option value="clinical">임상 소견만 (검사 결과 없음)</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <!-- ④ 쟁점: 입력값으로 자동 추천 → 체크로 켜고 끔, 목록에서 직접 추가 -->
+      <div class="issue-box">
+        <div class="issue-head"><b>쟁점</b> <small>입력한 사실관계로 자동 추천해요 · 체크를 끄면 빠져요</small>
+          <button type="button" class="pick-btn" data-picker="issue-picker">+ 직접 추가</button></div>
+        <div id="issue-auto"></div>
+        <!-- 쟁점 고르기: 장기 인보험 손해사정의 대표 쟁점을 단계별로 -->
+        <div id="issue-picker" class="picker" hidden></div>
+      </div>
       <datalist id="intro-cover-list"></datalist>
       <datalist id="kcd-list"></datalist>
       <datalist id="cover-list">
@@ -619,7 +707,6 @@
         <option value="뇌혈관질환진단비"></option><option value="뇌졸중진단비"></option><option value="급성심근경색증진단비"></option>
         <option value="허혈성심장질환진단비"></option><option value="암진단비"></option><option value="갑상선암진단비"></option>
       </datalist>
-      <datalist id="issue-list"></datalist>
     </form>
 
     <button id="start" type="button">시작하기</button>
@@ -2758,15 +2845,53 @@
       "굿앤굿어린이치아보험", "밝게웃는얼굴치아보험(연만기갱신형)", "실손의료비보장보험(갱신형)", "노후실손의료비보장보험(갱신형)", "유병력자실손의료비보장보험(갱신형)"
     ];
 
-    const CASE_INPUT_IDS = { product: "in-product", date: "in-date", job: "in-job", code: "in-code", cover: "in-cover", issue: "in-issue" };
-    const CASE_STORAGE_KEY = "caseInput_v1";
+    // 처음 화면 입력칸 (병력은 고객 의료 정보라 저장하지 않음)
+    const CASE_INPUT_IDS = { product: "in-product", date: "in-date", event: "in-event", code: "in-code", cover: "in-cover",
+      applytype: "in-applytype", changedate: "in-changedate", job: "in-job", job1: "in-job1", diagbasis: "in-diagbasis" };
+    const CASE_STORAGE_KEY = "caseInput_v2";
+    const reviewOn = { contract: true, pay: true };       // 검토 유형
+    const issueSel = { off: new Set(), manual: [] };      // 자동 추천에서 끈 쟁점 · 직접 추가한 쟁점
 
     function readCaseInput() {
       const v = {};
       Object.keys(CASE_INPUT_IDS).forEach(k => { v[k] = document.getElementById(CASE_INPUT_IDS[k]).value.trim(); });
       v.code = v.code.toUpperCase();
+      v.types = Object.keys(reviewOn).filter(k => reviewOn[k]);
+      if (!reviewOn.contract) { v.job = ""; v.job1 = ""; v.changedate = ""; }
+      v.history = reviewOn.contract ? readHist() : [];
+      v.issues = currentIssues(v).filter(i => !issueSel.off.has(i.value)).map(i => i.value);
+      v.issue = v.issues.join(", ");
       return v;
     }
+
+    // ----- 가입 전 병력 줄 (날짜 · 진단코드/병명 · 청약서 질문 기간) -----
+    const HIST_KINDS = {
+      m3:  { label: "3개월 내 진찰·검사·치료·투약", months: 3 },
+      y1:  { label: "1년 내 추가검사(재검사)", months: 12 },
+      y5:  { label: "5년 내 입원·수술·7일↑치료·30일↑투약", months: 60 },
+      y5d: { label: "5년 내 10대 질병 진단·치료", months: 60 }
+    };
+    function addHist(d) {
+      d = d || {};
+      const row = document.createElement("div");
+      row.className = "hist-row";
+      row.innerHTML = '<input type="date" class="h-date" aria-label="진단·치료일">'
+        + '<input type="text" class="h-text" list="kcd-list" placeholder="진단코드·병명 (예: I10 고혈압)" aria-label="진단코드·병명">'
+        + '<select class="h-kind" aria-label="청약서 질문 기간">' + Object.entries(HIST_KINDS).map(([k, o]) => '<option value="' + k + '">' + o.label + '</option>').join("") + '</select>'
+        + '<button type="button" class="del" title="이 줄 삭제" aria-label="이 줄 삭제">✕</button>';
+      row.querySelector(".h-date").value = d.date || "";
+      row.querySelector(".h-text").value = d.text || "";
+      row.querySelector(".h-kind").value = d.kind || "m3";
+      row.querySelector(".del").addEventListener("click", () => { row.remove(); refreshIssues(); });
+      document.getElementById("in-hist").appendChild(row);
+    }
+    function readHist() {
+      return [...document.querySelectorAll("#in-hist .hist-row")].map(r => ({
+        date: r.querySelector(".h-date").value, text: r.querySelector(".h-text").value.trim(), kind: r.querySelector(".h-kind").value
+      })).filter(h => h.date && h.text);
+    }
+    document.getElementById("in-hist-add").addEventListener("click", () => addHist());
+    addHist();
 
     // 입력값은 이 브라우저에 기억해 두었다가 다시 열 때 채움
     (function restoreCaseInput() {
@@ -2774,16 +2899,41 @@
       try { saved = JSON.parse(localStorage.getItem(CASE_STORAGE_KEY)); } catch (e) { saved = null; }
       if (!saved) return;
       Object.keys(CASE_INPUT_IDS).forEach(k => { if (saved[k]) document.getElementById(CASE_INPUT_IDS[k]).value = saved[k]; });
+      if (Array.isArray(saved.types) && saved.types.length) Object.keys(reviewOn).forEach(k => { reviewOn[k] = saved.types.includes(k); });
+      if (Array.isArray(saved.manual)) issueSel.manual = saved.manual.filter(m => typeof m === "string");
+      if (Array.isArray(saved.off)) saved.off.forEach(o => issueSel.off.add(o));
+    })();
+    function saveCaseInput(v) {
+      const s = { types: v.types, manual: issueSel.manual, off: [...issueSel.off] };
+      Object.keys(CASE_INPUT_IDS).forEach(k => { s[k] = v[k]; });
+      try { localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
+    }
+
+    // 날짜가 비어 있으면 예시 날짜를 넣어 둠: 가입일 3년 전 오늘, 사고·진단일 한 달 전
+    const ymdOf = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    (function defaultCaseDates() {
+      const a = document.getElementById("in-date"), e = document.getElementById("in-event");
+      if (!a.value) { const d = new Date(); d.setFullYear(d.getFullYear() - 3); a.value = ymdOf(d); }
+      if (!e.value) { const d = new Date(); d.setMonth(d.getMonth() - 1); e.value = ymdOf(d); }
     })();
 
-    // 가입일이 비어 있으면 예시로 3년 전 오늘을 넣어 둠 (직업·쟁점 예시는 입력칸의 value)
-    (function defaultCaseDate() {
-      const el = document.getElementById("in-date");
-      if (el.value) return;
-      const d = new Date();
-      d.setFullYear(d.getFullYear() - 3);
-      el.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    })();
+    // ----- 검토 유형: 고른 유형의 입력 상자만 보임 (최소 하나는 켜 둠) -----
+    function renderReviewTypes() {
+      document.querySelectorAll(".type-btn").forEach(b => {
+        const on = reviewOn[b.dataset.review];
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+      document.querySelectorAll(".review-box").forEach(f => { f.hidden = !reviewOn[f.dataset.for]; });
+    }
+    document.querySelectorAll(".type-btn").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.review;
+      if (reviewOn[k] && Object.values(reviewOn).filter(Boolean).length === 1) return;
+      reviewOn[k] = !reviewOn[k];
+      renderReviewTypes();
+      refreshIssues();
+    }));
+    renderReviewTypes();
 
     // ===== 처음 화면: 상품명 자동완성 (기본 목록 + 공시실 실시간 검색) · 대표상품 칩 =====
     const productNames = new Set(PRODUCT_BASE);
@@ -2837,9 +2987,9 @@
     });
 
     // ===== 직업·쟁점 고르기 패널 =====
-    const jobPicker = { tab: "3" };
+    const jobPicker = { tab: "3", target: "in-job" };
     function renderJobPicker() {
-      const cur = document.getElementById("in-job").value.trim();
+      const cur = document.getElementById(jobPicker.target).value.trim();
       const big = KSCO.find(b => b[0] === jobPicker.tab) || KSCO[0];
       let html = '<div class="src">통계청 한국표준직업분류 대분류 → 중분류 · 해당하는 직업을 누르세요 (목록에 없으면 칸에 직접 적어도 돼요)</div>';
       html += '<div class="tabs">' + KSCO.map(b => '<button type="button" class="tab' + (b[0] === big[0] ? ' on' : '') + '" data-tab="' + b[0] + '">' + b[0] + ' ' + escapeHtml(b[1]) + '</button>').join("") + '</div>';
@@ -2848,10 +2998,10 @@
       document.getElementById("job-picker").innerHTML = html;
     }
     function renderIssuePicker() {
-      const cur = document.getElementById("in-issue").value.trim();
-      let html = '<div class="src">장기 인보험 손해사정의 대표 쟁점 · 누르면 쟁점 칸에 들어가요</div>';
+      const cur = new Set(issueSel.lastShown || []);
+      let html = '<div class="src">장기 인보험 손해사정의 대표 쟁점 · 누르면 쟁점 목록에 더해요 (이미 있는 쟁점은 색칠돼 있어요)</div>';
       html += ISSUE_GROUPS.map(([g, items]) => '<div class="grp"><div class="grp-name">' + escapeHtml(g) + '</div><div class="chips">'
-        + items.map(([v, desc]) => '<button type="button" class="pick-chip' + (v === cur ? ' on' : '') + '" data-value="' + escapeHtml(v) + '" title="' + escapeHtml(desc) + '">' + escapeHtml(v) + '</button>').join("") + '</div></div>').join("");
+        + items.map(([v, desc]) => '<button type="button" class="pick-chip' + (cur.has(v) ? ' on' : '') + '" data-value="' + escapeHtml(v) + '" title="' + escapeHtml(desc) + '">' + escapeHtml(v) + '</button>').join("") + '</div></div>').join("");
       document.getElementById("issue-picker").innerHTML = html;
     }
     // 직업 칸에 해당하는 대분류 탭을 먼저 보여 줌
@@ -2860,33 +3010,160 @@
       return null;
     }
     document.getElementById("job-list").innerHTML = KSCO.flatMap(([, bn, mids]) => mids.flatMap(([, mn, jobs]) => jobs.map(j => '<option value="' + escapeHtml(j) + '">' + escapeHtml(mn) + '</option>'))).join("");
-    document.getElementById("issue-list").innerHTML = ISSUE_GROUPS.flatMap(([g, items]) => items.map(([v, desc]) => '<option value="' + escapeHtml(v) + '">' + escapeHtml(desc) + '</option>')).join("");
     ["tl-job0", "tl-job1"].forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute("list", "job-list"); });
 
-    const PICKERS = { "job-picker": { input: "in-job", render: renderJobPicker }, "issue-picker": { input: "in-issue", render: renderIssuePicker } };
-    function togglePicker(id, open) {
-      Object.keys(PICKERS).forEach(k => {
-        const show = k === id ? (open === undefined ? document.getElementById(k).hidden : open) : false;
-        if (show) {
-          if (k === "job-picker") jobPicker.tab = jobTabOf(document.getElementById("in-job").value.trim()) || jobPicker.tab;
-          PICKERS[k].render();
+    const PICKERS = { "job-picker": renderJobPicker, "issue-picker": renderIssuePicker };
+    // btn: 누른 버튼 (직업 패널은 '가입 때 직업'·'사고 당시 직업' 중 그 버튼의 칸에 넣음)
+    function togglePicker(id, open, btn) {
+      const el = document.getElementById(id);
+      const sameTarget = !btn || !btn.dataset.target || btn.dataset.target === jobPicker.target;
+      const show = open !== undefined ? open : (el.hidden || !sameTarget);
+      Object.keys(PICKERS).forEach(k => { if (k !== id) document.getElementById(k).hidden = true; });
+      if (show) {
+        if (id === "job-picker") {
+          if (btn && btn.dataset.target) jobPicker.target = btn.dataset.target;
+          jobPicker.tab = jobTabOf(document.getElementById(jobPicker.target).value.trim()) || jobPicker.tab;
         }
-        document.getElementById(k).hidden = !show;
-        const btn = document.querySelector('[data-picker="' + k + '"]');
-        if (btn) btn.setAttribute("aria-expanded", String(show));
+        PICKERS[id]();
+      }
+      el.hidden = !show;
+      document.querySelectorAll("[data-picker]").forEach(b => {
+        const isIt = b.dataset.picker === id && show && (!b.dataset.target || b.dataset.target === jobPicker.target);
+        b.setAttribute("aria-expanded", String(isIt && !document.getElementById(b.dataset.picker).hidden));
       });
     }
-    document.querySelectorAll(".pick-btn").forEach(b => b.addEventListener("click", () => togglePicker(b.dataset.picker)));
-    Object.keys(PICKERS).forEach(k => {
-      document.getElementById(k).addEventListener("click", e => {
-        const tab = e.target.closest("[data-tab]");
-        if (tab) { jobPicker.tab = tab.dataset.tab; renderJobPicker(); return; }
-        const chip = e.target.closest("[data-value]");
-        if (!chip) return;
-        document.getElementById(PICKERS[k].input).value = chip.dataset.value;
-        togglePicker(k, false);
-      });
+    document.querySelectorAll("[data-picker]").forEach(b => b.addEventListener("click", () => togglePicker(b.dataset.picker, undefined, b)));
+    document.getElementById("job-picker").addEventListener("click", e => {
+      const tab = e.target.closest("[data-tab]");
+      if (tab) { jobPicker.tab = tab.dataset.tab; renderJobPicker(); return; }
+      const chip = e.target.closest("[data-value]");
+      if (!chip) return;
+      document.getElementById(jobPicker.target).value = chip.dataset.value;
+      togglePicker("job-picker", false);
+      refreshIssues();
     });
+    document.getElementById("issue-picker").addEventListener("click", e => {
+      const chip = e.target.closest("[data-value]");
+      if (!chip) return;
+      const val = chip.dataset.value;
+      issueSel.off.delete(val);
+      if (!(issueSel.lastShown || []).includes(val)) issueSel.manual.push(val);
+      togglePicker("issue-picker", false);
+      refreshIssues();
+    });
+
+    // ===== 쟁점 자동 추천: 입력한 사실관계 → [쟁점, 추천 이유] =====
+    const ISSUE_ORDER = ISSUE_GROUPS.flatMap(([, items]) => items.map(i => i[0]));
+    const dOf = s => (s ? new Date(s + "T00:00:00") : null);
+    const dotDate = s => (s || "").replace(/-/g, ".");
+    function monthsBack(d, m) { const x = new Date(d); x.setMonth(x.getMonth() - m); return x; }
+
+    function autoIssues(v) {
+      const out = [];
+      const add = (value, why) => { if (!out.some(o => o.value === value)) out.push({ value, why, auto: true }); };
+      const code = (v.code || "").replace(/\./g, "");
+      const cover = v.cover || "";
+      const apply = dOf(v.date), event = dOf(v.event);
+      const days = apply && event ? Math.round((event - apply) / 86400000) : null;
+      const isCancer = /^(C|D0|D3[7-9]|D4[0-8])/.test(code) || /암/.test(cover);
+      const isBrain = /^I6/.test(code) || /뇌/.test(cover);
+      const isHeart = /^I2[0-5]/.test(code) || /(심근|허혈|심장|협심)/.test(cover);
+      const isInjury = /(상해|재해|골절|화상)/.test(cover);
+
+      if (v.types.includes("contract")) {
+        // 고지의무: 병력이 청약일(계약 변경일) 전 질문 기간 안에 있으면
+        const refs = [["청약일", apply], ["계약 변경일", dOf(v.changedate)]].filter(r => r[1]);
+        const hits = [];
+        (v.history || []).forEach(h => {
+          const hd = dOf(h.date), k = HIST_KINDS[h.kind];
+          refs.forEach(([name, ref]) => {
+            if (hd <= ref && hd >= monthsBack(ref, k.months) && !hits.some(x => x.h === h)) {
+              const m = Math.max(0, Math.round((ref - hd) / 86400000 / 30.4));
+              hits.push({ h, text: "'" + h.text + "'(" + dotDate(h.date) + ")이 " + name + " " + (m ? m + "개월" : "직") + " 전 — " + k.label + " 질문 기간 안" });
+            }
+          });
+        });
+        if (hits.length) {
+          let why = hits[0].text + (hits.length > 1 ? " 외 " + (hits.length - 1) + "건" : "");
+          const cat = code.slice(0, 3);
+          if (cat && hits.some(x => x.h.text.toUpperCase().replace(/\./g, "").includes(cat))) why += " · 청구 진단과 같은 계열(" + cat + ")";
+          if (v.applytype === "simple") why += " · 간편 심사: 실제 청약서 질문 항목과 맞는지 확인";
+          if (v.applytype === "diag") why += " · 진단 계약: 회사가 건강진단으로 알 수 있었는지 확인(해지 제한)";
+          add("고지의무 위반", why);
+        }
+        // 통지의무: 가입 때 직업과 사고 당시 직업이 다르면
+        if (v.job1 && v.job1 !== v.job) add("통지의무 위반", "가입 때 '" + (v.job || "미입력") + "' → 사고 당시 '" + v.job1 + "'");
+      }
+
+      if (v.types.includes("pay")) {
+        if (days !== null && days < 0) add("면책·감액기간", "사고·진단일(" + dotDate(v.event) + ")이 가입일보다 앞섬 — 보험기간 전 발생");
+        else if (days !== null && isCancer && days < 90) add("면책·감액기간", "가입 후 " + days + "일째 진단 — 암 책임개시(90일) 전");
+        else if (days !== null && (isCancer || isBrain || isHeart) && days < 730) add("면책·감액기간", "가입 후 " + days + "일째 — 감액 지급 기간(보통 1~2년) 안인지 약관 확인");
+        if (/^(C73|C44|D0|D3[7-9]|D4[0-8])/.test(code) || /(유사암|갑상선|경계성|제자리|기타피부)/.test(cover)) add("암 분류", (code || cover) + " — 일반암과 유사암(갑상선·제자리·경계성·기타피부암) 구분");
+        if (/^C7[7-9]/.test(code)) add("원발부위·전이암", code + "는 이차성(전이) 암 코드 — 원발 부위 기준으로 분류");
+        if (isBrain) add("뇌혈관질환 해당 여부", "청구 담보 '" + (cover || "뇌혈관 담보") + "' 범위에 " + (code || "진단코드") + "가 들어가는지 (뇌출혈 I60~I62 · 뇌경색 I63 · 뇌졸중 · 뇌혈관질환 I60~I69)");
+        if (isHeart) add("심장질환 해당 여부", "청구 담보 '" + (cover || "심장 담보") + "' 범위에 " + (code || "진단코드") + "가 들어가는지 (급성심근경색 I21~I23 · 허혈성심장질환 I20~I25)");
+        if (v.diagbasis === "screen" || v.diagbasis === "clinical") add("진단확정", v.diagbasis === "screen" ? "선별검사만으로 진단 — 약관의 확정 검사 요건 충족 여부" : "검사 결과 없이 임상 소견만으로 진단");
+        else if (/^R/.test(code)) add("진단확정", code + "는 증상·징후 코드(R) — 확정 진단인지 확인");
+        if (isInjury && code && !/^[S-Y]/.test(code)) add("외래성", "상해 담보인데 진단코드 " + code + "는 질병 코드 — 외부 사고로 생긴 것인지");
+        if (isInjury && /사망/.test(cover)) add("사고 인과관계", "사고와 사망 사이의 인과관계 (사망진단서 · 부검 여부)");
+        if (/장해/.test(cover)) {
+          add("장해 지급률", "장해분류표 기준 지급률 평가와 합산");
+          if (event) {
+            const mo = Math.round((Date.now() - event) / 86400000 / 30.4);
+            if (mo < 6) add("장해 고정", "사고 후 " + mo + "개월 — 장해 고정 시기 전일 수 있음 (한시장해는 5년 이상)");
+          }
+        }
+        if (/입원/.test(cover)) add(isCancer ? "암 직접치료" : "입원 필요성", isCancer ? "암 입원 담보 — 요양병원 등 입원이 암의 직접 치료인지" : "입원 치료가 의학적으로 필요했는지 (통원 가능 여부)");
+        if (/수술/.test(cover)) add("수술 해당 여부", "약관·수술분류표의 수술 정의에 맞는지");
+        if (/(실손|의료비)/.test(cover)) add("실손 비급여 적정성", "비급여 치료의 필요성과 횟수");
+      }
+      return out.sort((a, b) => ISSUE_ORDER.indexOf(a.value) - ISSUE_ORDER.indexOf(b.value));
+    }
+    function currentIssues(v) {
+      const auto = autoIssues(v);
+      const manual = issueSel.manual.filter(m => !auto.some(a => a.value === m))
+        .map(m => ({ value: m, why: (ISSUE_GROUPS.flatMap(g => g[1]).find(i => i[0] === m) || [, "직접 추가"])[1], auto: false }));
+      return [...auto, ...manual];
+    }
+
+    function renderIssues() {
+      const v = readCaseInput();
+      const list = currentIssues(v);
+      issueSel.lastShown = list.map(i => i.value);
+      const box = document.getElementById("issue-auto");
+      if (!list.length) {
+        box.innerHTML = '<div class="issue-empty">아직 추천할 쟁점이 없어요. 사고·진단일, 진단코드, 청구 담보, 가입 전 병력을 넣으면 자동으로 찾아요.</div>';
+        return;
+      }
+      box.innerHTML = list.map(i => {
+        const off = issueSel.off.has(i.value);
+        return '<label class="issue-item' + (off ? ' off' : '') + '"><input type="checkbox" data-issue="' + escapeHtml(i.value) + '"' + (off ? '' : ' checked') + '>'
+          + '<span class="src' + (i.auto ? ' auto' : '') + '">' + (i.auto ? '자동' : '직접') + '</span>'
+          + '<span><b>' + escapeHtml(i.value) + '</b> <span class="why">' + escapeHtml(i.why) + '</span></span></label>';
+      }).join("");
+    }
+    let issueTimer = 0;
+    function refreshIssues() {
+      clearTimeout(issueTimer);
+      issueTimer = setTimeout(() => {
+        // 상해·재해 담보이거나 사고 당시 직업을 넣었으면 통지의무 칸을 펼침
+        const cover = document.getElementById("in-cover").value;
+        if (/(상해|재해|골절|화상)/.test(cover) || document.getElementById("in-job1").value.trim()) document.getElementById("notify-box").open = true;
+        renderIssues();
+      }, 120);
+    }
+    document.getElementById("issue-auto").addEventListener("change", e => {
+      const val = e.target.dataset && e.target.dataset.issue;
+      if (!val) return;
+      if (e.target.checked) issueSel.off.delete(val);
+      else if (issueSel.manual.includes(val) && !autoIssues(readCaseInput()).some(a => a.value === val)) issueSel.manual = issueSel.manual.filter(m => m !== val);
+      else issueSel.off.add(val);
+      renderIssues();
+    });
+    document.getElementById("case-form").addEventListener("input", e => { if (!e.target.closest("#issue-auto")) refreshIssues(); });
+    document.getElementById("case-form").addEventListener("change", e => { if (!e.target.closest("#issue-auto")) refreshIssues(); });
+    refreshIssues();
 
     // ===== 처음 화면: 상품명·가입일을 넣으면 바로 공시실 약관을 받아 두고, 담보명은 그 약관의 담보 중에서만 고르게 함 =====
     // state: idle(상품명 없음) · loading(약관 받는 중, 담보명 잠금) · ready(약관 담보만 허용) · free(약관을 못 찾음, 직접 입력)
@@ -3036,15 +3313,19 @@
 
     function runAutoSearch() {
       const v = readCaseInput();
-      try { localStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(v)); } catch (e) {}
+      saveCaseInput(v);
       const info = KCD[v.code];
-      const any = Object.values(v).some(Boolean);
+      const any = [v.product, v.code, v.cover, v.issue, v.job1].some(Boolean);
 
       // 입력 요약: 항목별 칩
       const codeName = v.code ? koicdName(normCode(v.code)) : "";
+      const TYPE_NAMES = { contract: "계약체결 적정성", pay: "담보 지급 적정성" };
       const parts = [
-        ["상품", v.product], ["가입일", v.date.replace(/-/g, ".")], ["기고지 직업", v.job],
-        ["진단", v.code ? normCode(v.code) + (codeName ? " " + codeName : "") : ""], ["담보", v.cover], ["쟁점", v.issue]
+        ["검토", v.types.map(t => TYPE_NAMES[t]).join(" · ")],
+        ["상품", v.product], ["가입일", v.date.replace(/-/g, ".")], ["사고·진단일", v.event.replace(/-/g, ".")],
+        ["진단", v.code ? normCode(v.code) + (codeName ? " " + codeName : "") : ""], ["담보", v.cover],
+        ["병력", v.history.length ? v.history.length + "건" : ""],
+        ["직업", v.job1 && v.job1 !== v.job ? v.job + " → " + v.job1 : ""], ["쟁점", v.issue]
       ].filter(p => p[1]);
       const summary = document.getElementById("case-summary");
       summary.innerHTML = "";
@@ -3110,7 +3391,7 @@
       }
 
       // 4) 의학 논문: PubMed 검색어를 만들고 건수·대표 논문을 가져옴 (인터넷 필요)
-      const enTerms = [info && info.en, ISSUE_EN[v.issue]].filter(Boolean);
+      const enTerms = [info && info.en, v.issues.map(i => ISSUE_EN[i]).find(Boolean)].filter(Boolean);
       const pubQuery = enTerms.length ? enTerms.join(" ") : (v.code || "");
       document.getElementById("pubmed-query").value = pubQuery;
       if (pubQuery) {
@@ -3304,11 +3585,20 @@
     $("tl-today").value = new Date().toISOString().slice(0, 10);
     addTlRow();
 
-    // 처음 화면 입력값(담보명·기고지 직업)을 타임라인에 미리 채움
+    // 처음 화면 입력값(날짜·담보·직업·진단 근거·가입 전 병력)을 타임라인의 빈 칸에 미리 채움
     document.querySelector('.menu-item[data-go="timeline"]').addEventListener("click", () => {
       const v = readCaseInput();
-      if (v.cover && !$("tl-cover").value) $("tl-cover").value = v.cover;
-      if (v.job && !$("tl-job0").value) $("tl-job0").value = v.job;
+      const fill = (id, val) => { if (val && !$(id).value) $(id).value = val; };
+      fill("tl-apply", v.date); fill("tl-start", v.date); fill("tl-event", v.event); fill("tl-cover", v.cover);
+      fill("tl-job0", v.job); fill("tl-job1", v.job1 || v.job); fill("tl-diagbasis", v.diagbasis);
+      if (v.applytype === "diag") $("tl-diagcontract").checked = true;
+      const tlFilled = [...document.querySelectorAll(".tl-row")].some(r => r.querySelector(".tl-r-date").value || r.querySelector(".tl-r-text").value.trim());
+      if (!tlFilled && v.history.length) {
+        $("tl-rows").innerHTML = "";
+        const cat = v.code.replace(/\./g, "").slice(0, 3);
+        v.history.forEach(h => addTlRow({ date: h.date, text: h.text, kind: h.kind, told: false,
+          related: !!cat && h.text.toUpperCase().replace(/\./g, "").includes(cat) }));
+      }
     });
 
     // 예시 사건: 고혈압 투약 미고지 + 직업 변경 미통지, 뇌출혈 진단
