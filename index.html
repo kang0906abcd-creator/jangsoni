@@ -65,6 +65,26 @@
     .intro-yak select { flex: 1 1 260px; min-width: 0; padding: 6px 8px; border: 1px solid #CCCCCC; border-radius: 6px; font: inherit; font-size: 0.85rem; background: #fff; }
     .intro-yak .chip { padding: 4px 10px; border: 1px solid #FF7A29; border-radius: 14px; background: #fff; color: #c2410c; font: inherit; font-size: 0.82rem; cursor: pointer; }
     .intro-yak .chip:hover { background: #FFF1E8; }
+    /* 처음 화면: 대표상품 칩 · 직업/쟁점 고르기 패널 */
+    .pick-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .pick-label { font-size: 0.8rem; font-weight: bold; color: #666666; margin-right: 2px; }
+    .pick-chip { padding: 4px 10px; border: 1px solid #E5E5E5; border-radius: 14px; background: #fff; color: #444444; font: inherit; font-size: 0.8rem; cursor: pointer; }
+    .pick-chip:hover { border-color: #FF7A29; color: #c2410c; background: #FFF1E8; }
+    .pick-chip.on { border-color: #FF7A29; background: #FF7A29; color: #fff; }
+    .with-btn { display: flex; gap: 6px; }
+    .with-btn input { flex: 1 1 auto; min-width: 0; }
+    .pick-btn { flex: none; padding: 0 10px; border: 1px solid #FF7A29; border-radius: 6px; background: #fff; color: #c2410c; font: inherit; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+    .pick-btn[aria-expanded="true"] { background: #FF7A29; color: #fff; }
+    .picker { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #FFD2B5; border-radius: 8px; background: #FFFAF6; font-size: 0.85rem; color: #444444; max-height: 380px; overflow-y: auto; }
+    .picker[hidden] { display: none; }
+    .picker .src { font-size: 0.75rem; color: #888888; }
+    .picker .tabs { display: flex; flex-wrap: wrap; gap: 4px; position: sticky; top: -12px; background: #FFFAF6; padding: 2px 0 6px; }
+    .picker .tab { padding: 5px 9px; border: 1px solid #E5E5E5; border-radius: 6px; background: #fff; font: inherit; font-size: 0.78rem; cursor: pointer; color: #444444; }
+    .picker .tab.on { background: #222222; border-color: #222222; color: #fff; }
+    .picker .grp { display: flex; flex-direction: column; gap: 5px; }
+    .picker .grp-name { font-weight: bold; color: #222222; font-size: 0.8rem; }
+    .picker .grp-name small { font-weight: normal; color: #888888; margin-left: 6px; }
+    .picker .chips { display: flex; flex-wrap: wrap; gap: 5px; }
     /* 메뉴 버튼 아래 자동검색 결과: "항목명 | 값" 줄로 짧게 */
     .auto-result {
       display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; align-items: baseline;
@@ -576,12 +596,20 @@
 
     <!-- 사건 정보 입력: 시작하기를 누르면 이 값으로 각 메뉴를 자동 검색 -->
     <form id="case-form" class="case-form" autocomplete="off">
-      <label>상품명<input id="in-product" type="text" placeholder="예) 퍼펙트플러스종합보험"></label>
+      <!-- 대표상품: 누르면 상품명에 바로 들어감 (장기 인보험 주력 상품) -->
+      <div class="pick-row" id="product-chips"><span class="pick-label">대표상품</span></div>
+      <label>상품명<input id="in-product" type="text" list="product-list" placeholder="2글자 이상 치면 공시실 상품을 찾아 줘요"></label>
       <label>보험 가입일<input id="in-date" type="date"></label>
-      <label>기고지 직업<input id="in-job" type="text" placeholder="예) 사무직"></label>
+      <label>기고지 직업<span class="with-btn"><input id="in-job" type="text" list="job-list" value="총무 사무원" placeholder="예) 총무 사무원"><button type="button" class="pick-btn" data-picker="job-picker">분류</button></span></label>
       <label>진단코드<input id="in-code" type="text" list="kcd-list" placeholder="예) I21"></label>
       <label>담보명<input id="in-cover" type="text" list="intro-cover-list" placeholder="상품명을 넣으면 약관의 담보에서 골라요"></label>
-      <label>쟁점<input id="in-issue" type="text" list="issue-list" placeholder="예) 외래성"></label>
+      <label>쟁점<span class="with-btn"><input id="in-issue" type="text" list="issue-list" value="고지의무 위반" placeholder="예) 고지의무 위반"><button type="button" class="pick-btn" data-picker="issue-picker">목록</button></span></label>
+      <!-- 직업 고르기: 통계청 한국표준직업분류 대분류 탭 → 중분류별 대표 직업 -->
+      <div id="job-picker" class="picker" hidden></div>
+      <!-- 쟁점 고르기: 장기 인보험 손해사정의 대표 쟁점을 단계별로 -->
+      <div id="issue-picker" class="picker" hidden></div>
+      <datalist id="product-list"></datalist>
+      <datalist id="job-list"></datalist>
       <!-- 상품 약관: 상품명·가입일을 넣으면 바로 공시실 약관을 받아, 담보명은 그 약관의 특약 중에서만 고르게 함 -->
       <div id="intro-yak" class="intro-yak" hidden></div>
       <datalist id="intro-cover-list"></datalist>
@@ -591,11 +619,7 @@
         <option value="뇌혈관질환진단비"></option><option value="뇌졸중진단비"></option><option value="급성심근경색증진단비"></option>
         <option value="허혈성심장질환진단비"></option><option value="암진단비"></option><option value="갑상선암진단비"></option>
       </datalist>
-      <datalist id="issue-list">
-        <option value="외래성"></option><option value="우연성"></option><option value="고지의무"></option>
-        <option value="진단확정"></option><option value="입원 필요성"></option><option value="장해 고정"></option>
-        <option value="암 분류"></option><option value="설명의무"></option><option value="원발부위"></option>
-      </datalist>
+      <datalist id="issue-list"></datalist>
     </form>
 
     <button id="start" type="button">시작하기</button>
@@ -2618,8 +2642,121 @@
     document.getElementById("kcd-list").innerHTML = Object.keys(KCD)
       .map(code => '<option value="' + code + '">' + KCD[code].name + '</option>').join("");
 
-    // 쟁점 → PubMed 영어 검색어 보충
-    const ISSUE_EN = { "외래성": "sudden death", "우연성": "accident", "진단확정": "diagnosis", "입원 필요성": "hospitalization", "장해 고정": "disability", "암 분류": "classification" };
+    // ===== 장기 인보험 손해사정의 대표 쟁점: [쟁점(입력값), 설명, PubMed 영어 검색어] =====
+    // 쟁점 값의 첫 단어는 판례·분쟁조정 검색어로 쓰이므로 짧고 핵심 단어로 시작하게 함
+    const ISSUE_GROUPS = [
+      ["계약 단계 (알릴 의무)", [
+        ["고지의무 위반", "청약 때 병력·치료 사실을 알리지 않음 → 해지·면책", ""],
+        ["통지의무 위반", "가입 후 직업·직무 변경을 알리지 않음 → 비례 삭감", ""],
+        ["설명의무 위반", "면책·감액 등 약관 중요 내용을 설명했는지", ""]]],
+      ["보험사고 해당성 (상해·재해)", [
+        ["외래성", "질병이 아닌 외부 원인의 사고인지 (내인사 배제)", "sudden death"],
+        ["우연성", "예견하지 못한 사고인지, 고의·자해가 아닌지", "accident"],
+        ["재해 해당 여부", "재해분류표의 재해(우발적 외래 사고)에 해당하는지", "accidental injury"],
+        ["사고 인과관계", "사고와 사망·장해·질병 사이의 상당인과관계", "causation trauma"]]],
+      ["면책 사유", [
+        ["고의·자살 면책", "피보험자의 고의·자살 (심신상실 상태 예외)", "suicide"],
+        ["위험 활동 면책", "직업·직무·동호회 목적의 위험 활동 중 사고", ""],
+        ["면책·감액기간", "책임개시 전 진단·발병, 90일 면책·감액 지급 기간", ""]]],
+      ["진단비 (질병 해당성)", [
+        ["진단확정", "전문의 진단과 병리·영상 검사 등 확정 요건 충족 여부", "diagnosis"],
+        ["암 분류", "일반암과 유사암(경계성·제자리·갑상선·기타피부암) 구분", "neoplasm classification"],
+        ["원발부위·전이암", "원발 부위 기준 분류, 전이암의 진단비 기준", "primary site metastasis"],
+        ["뇌혈관질환 해당 여부", "뇌졸중·뇌출혈·뇌경색 담보 범위(I60~I69) 해당", "cerebrovascular disease"],
+        ["심장질환 해당 여부", "급성심근경색(I21~I23)·허혈성심장질환 범위 해당", "acute myocardial infarction"],
+        ["질병코드 분류", "KCD 코딩이 맞는지 (주진단·부진단 선택)", ""]]],
+      ["장해", [
+        ["장해 지급률", "장해분류표 기준 지급률 평가와 합산", "permanent disability assessment"],
+        ["장해 고정", "장해 고정 시기 · 한시장해(5년 이상) 여부", "disability"],
+        ["기왕장해·기여도", "이전 장해·기왕증의 기여도 감액", "pre-existing condition"]]],
+      ["입원·수술·치료비", [
+        ["입원 필요성", "입원 치료가 의학적으로 필요했는지 (통원 가능 여부)", "hospitalization"],
+        ["수술 해당 여부", "약관·수술분류표의 수술 정의에 맞는지", "surgery definition"],
+        ["암 직접치료", "요양병원 입원 등이 암의 직접 치료인지", "cancer treatment"],
+        ["실손 비급여 적정성", "도수치료·주사 등 비급여 치료의 필요성과 횟수", "manual therapy"]]]
+    ];
+    const ISSUE_EN = {};
+    ISSUE_GROUPS.forEach(([, items]) => items.forEach(([v, , en]) => { if (en) ISSUE_EN[v] = en; }));
+
+    // ===== 통계청 한국표준직업분류: 대분류 → 중분류 → 대표 직업 =====
+    const KSCO = [
+      ["1", "관리자", [
+        ["11", "공공 기관 및 기업 고위직", ["기업 대표이사", "고위 공무원", "공공기관장"]],
+        ["12", "행정·경영 지원 및 마케팅 관리직", ["경영지원 관리자", "인사 관리자", "마케팅 관리자"]],
+        ["13", "전문 서비스 관리직", ["연구 관리자", "병원 관리자", "금융 관리자", "교육 관리자"]],
+        ["14", "건설·전기 및 생산 관련 관리직", ["건설현장 소장", "공장장", "생산 관리자"]],
+        ["15", "판매 및 고객 서비스 관리직", ["영업 관리자", "음식점 관리자", "숙박업 관리자"]]]],
+      ["2", "전문가 및 관련 종사자", [
+        ["21", "과학 전문가 및 관련직", ["연구원", "실험실 연구보조원"]],
+        ["22", "정보 통신 전문가 및 기술직", ["소프트웨어 개발자", "웹 개발자", "네트워크 엔지니어", "통신 설비 기술자"]],
+        ["23", "공학 전문가 및 기술직", ["건축 설계 기술자", "토목 기술자", "기계 설계 기술자", "전기 안전 기술자", "현장 감리원"]],
+        ["24", "보건·사회복지 및 종교 관련직", ["의사", "간호사", "약사", "물리치료사", "사회복지사", "성직자"]],
+        ["25", "교육 전문가 및 관련직", ["대학 교수", "초중고 교사", "유치원 교사", "학원 강사"]],
+        ["26", "법률 및 행정 전문직", ["변호사", "법무사", "행정 공무원(전문직)"]],
+        ["27", "경영·금융 전문가 및 관련직", ["회계사", "세무사", "손해사정사", "보험 계리사", "투자 상담원"]],
+        ["28", "문화·예술·스포츠 전문가 및 관련직", ["기자", "디자이너", "방송 연출가", "배우", "프로 운동선수", "스포츠 강사"]]]],
+      ["3", "사무 종사자", [
+        ["31", "경영 및 회계 관련 사무직", ["총무 사무원", "인사 사무원", "회계 사무원", "경리 사무원", "비서"]],
+        ["32", "금융 사무직", ["은행 사무원", "보험 사무원", "증권 사무원"]],
+        ["33", "법률 및 감사 사무직", ["법률 사무원", "감사 사무원"]],
+        ["39", "상담·안내·통계 및 기타 사무직", ["고객 상담원(콜센터)", "안내 접수원", "통계 사무원"]]]],
+      ["4", "서비스 종사자", [
+        ["41", "경찰·소방 및 보안 관련 서비스직", ["경찰관", "소방관", "교도관", "경호원"]],
+        ["42", "돌봄·보건 및 개인 생활 서비스직", ["요양보호사", "간병인", "보육교사", "미용사", "피부관리사"]],
+        ["43", "운송 및 여가 서비스직", ["항공기 객실 승무원", "여행 안내원", "레저 강사"]],
+        ["44", "조리 및 음식 서비스직", ["주방장·조리사", "바텐더", "음식점 서빙원"]]]],
+      ["5", "판매 종사자", [
+        ["51", "영업직", ["보험 설계사", "자동차 영업원", "제품 영업원", "부동산 중개인"]],
+        ["52", "매장 판매 및 상품 대여직", ["매장 판매원", "편의점 점원", "계산원"]],
+        ["53", "통신 및 방문·노점 판매 관련직", ["텔레마케터", "방문 판매원", "노점상"]]]],
+      ["6", "농림어업 숙련 종사자", [
+        ["61", "농·축산 숙련직", ["작물 재배 농업인", "축산업 종사자", "조경원"]],
+        ["62", "임업 숙련직", ["벌목원", "조림·산림 관리원"]],
+        ["63", "어업 숙련직", ["어부(어선원)", "해녀", "양식업 종사자"]]]],
+      ["7", "기능원 및 관련 기능 종사자", [
+        ["71", "식품 가공 관련 기능직", ["제빵원", "정육원", "떡 제조원"]],
+        ["72", "섬유·의복 및 가죽 관련 기능직", ["재단사", "재봉사", "구두 제조원"]],
+        ["73", "목재·가구·악기 및 간판 관련 기능직", ["목수(가구)", "간판 제작 설치원"]],
+        ["74", "금속 성형 관련 기능직", ["용접공", "판금원", "단조원"]],
+        ["75", "운송 및 기계 관련 기능직", ["자동차 정비원", "기계 정비원", "항공기 정비원"]],
+        ["76", "전기 및 전자 관련 기능직", ["전기공", "전기 설비 설치원", "전자제품 수리원"]],
+        ["77", "정보 통신 및 방송장비 관련 기능직", ["통신 케이블 설치원", "방송장비 설치원"]],
+        ["78", "건설 및 채굴 관련 기능직", ["철근공", "형틀목공", "미장공", "배관공", "도장공", "건설 비계공", "광원(채굴원)"]],
+        ["79", "기타 기능 관련직", ["안경사", "귀금속 세공원", "건물 도배공"]]]],
+      ["8", "장치·기계 조작 및 조립 종사자", [
+        ["81", "식품 가공 관련 기계 조작직", ["식품 제조기 조작원"]],
+        ["82", "섬유 및 신발 관련 기계 조작직", ["섬유 기계 조작원", "신발 제조기 조작원"]],
+        ["83", "화학 관련 기계 조작직", ["화학물 제조기 조작원", "플라스틱 제품 조작원"]],
+        ["84", "금속 및 비금속 관련 기계 조작직", ["금속 가공기 조작원", "도금기 조작원"]],
+        ["85", "기계 제조 및 관련 기계 조작직", ["공작기계 조작원", "자동차 조립원", "지게차 운전원"]],
+        ["86", "전기 및 전자 관련 기계 조작직", ["전자부품 조립원", "반도체 장비 조작원"]],
+        ["87", "운전 및 운송 관련직", ["택시 운전원", "버스 운전원", "화물차 운전원", "택배 배송기사", "중장비 운전원", "선박 갑판원"]],
+        ["88", "상하수도 및 재활용 처리 관련 기계 조작직", ["정수장 조작원", "재활용 처리기 조작원"]],
+        ["89", "목재·인쇄 및 기타 기계 조작직", ["인쇄기 조작원", "목재 가공기 조작원"]]]],
+      ["9", "단순노무 종사자", [
+        ["91", "건설 및 광업 관련 단순 노무직", ["건설 단순 노무원", "광업 단순 노무원"]],
+        ["92", "운송 관련 단순 노무직", ["하역·적재원", "택배 상하차원", "이삿짐 운반원"]],
+        ["93", "제조 관련 단순 노무직", ["제조 단순 노무원", "포장원"]],
+        ["94", "청소 및 경비 관련 단순 노무직", ["건물 청소원", "환경미화원", "아파트 경비원"]],
+        ["95", "가사·음식 및 판매 관련 단순 노무직", ["가사 도우미", "주방 보조원", "배달원(오토바이)"]],
+        ["99", "농림어업 및 기타 서비스 단순 노무직", ["농림어업 단순 노무원", "주차 관리원"]]]],
+      ["A", "군인", [
+        ["A0", "군인", ["직업군인(장교·부사관)", "현역 병사"]]]]
+    ];
+
+    // 처음 화면 대표상품 (현대해상 장기 인보험 주력 상품) / 상품명 자동완성 기본 목록 (2026.11 공시실 판매 상품)
+    const PRODUCT_CHIPS = ["퍼펙트플러스종합보험(세만기형)", "굿앤굿어린이종합보험Q", "하이콜퍼펙트종합보험(세만기형)", "간편한3.10.10건강보험(세만기형)",
+      "마음플러스(+)상해종합보험", "뉴하이카운전자상해보험", "두배받는암보험", "실손의료비보장보험(갱신형)"];
+    const PRODUCT_BASE = [
+      "퍼펙트플러스종합보험(세만기형)", "퍼펙트플러스종합보험(연만기갱신형)", "하이콜퍼펙트종합보험(세만기형)", "하이콜퍼펙트종합보험(연만기갱신형)",
+      "굿앤굿스타종합보험(세만기형)", "굿앤굿스타종합보험(연만기갱신형)", "굿앤굿어린이종합보험Q", "다이렉트굿앤굿어린이종합보험Q",
+      "인생의품격종합보험(세만기형)", "마음플러스(+)상해종합보험", "하이퍼스트상해보험", "하이콜든든생활보장상해보험", "행복가득생활보장보험",
+      "간편한3.10.10건강보험(세만기형)", "간편한3.10.10건강보험(연만기갱신형)", "간편한333건강보험(세만기형)", "간편한333건강보험(연만기갱신형)",
+      "내삶엔(3N)맞춤간편건강보험(세만기형)", "내삶엔(3N)맞춤간편건강보험(연만기갱신형)", "내몸엔(N)맞춤간편건강보험(세만기형)", "내몸엔(N)맞춤간편건강보험(연만기갱신형)",
+      "다이렉트간편건강보험(연만기갱신형)", "다이렉트퍼펙트건강보험", "두배받는암보험", "다이렉트계속받는암보험", "케어더블암치매보험(세만기형)",
+      "퍼펙트케어간병보험", "든든한건강플러스간병보험", "뉴하이카운전자상해보험", "하이콜운전자상해보험", "다이렉트운전자보험", "다이렉트오토바이운전자보험",
+      "굿앤굿어린이치아보험", "밝게웃는얼굴치아보험(연만기갱신형)", "실손의료비보장보험(갱신형)", "노후실손의료비보장보험(갱신형)", "유병력자실손의료비보장보험(갱신형)"
+    ];
 
     const CASE_INPUT_IDS = { product: "in-product", date: "in-date", job: "in-job", code: "in-code", cover: "in-cover", issue: "in-issue" };
     const CASE_STORAGE_KEY = "caseInput_v1";
@@ -2638,6 +2775,118 @@
       if (!saved) return;
       Object.keys(CASE_INPUT_IDS).forEach(k => { if (saved[k]) document.getElementById(CASE_INPUT_IDS[k]).value = saved[k]; });
     })();
+
+    // 가입일이 비어 있으면 예시로 3년 전 오늘을 넣어 둠 (직업·쟁점 예시는 입력칸의 value)
+    (function defaultCaseDate() {
+      const el = document.getElementById("in-date");
+      if (el.value) return;
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 3);
+      el.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    })();
+
+    // ===== 처음 화면: 상품명 자동완성 (기본 목록 + 공시실 실시간 검색) · 대표상품 칩 =====
+    const productNames = new Set(PRODUCT_BASE);
+    function cleanProdName(nm) {
+      return (nm || "").replace(/^\s*(무배당|\(무\))\s*/, "").replace(/^\(무\)\s*/, "").replace(/현대해상\s*/, "")
+        .replace(/\s*\(Hi\d+\).*$/, "").replace(/\s+\d종.*$/, "").trim();
+    }
+    function renderProductList(extra) {
+      const names = [...new Set([...(extra || []), ...productNames])];
+      document.getElementById("product-list").innerHTML = names.map(n => '<option value="' + escapeHtml(n) + '"></option>').join("");
+    }
+    renderProductList();
+    document.getElementById("product-chips").insertAdjacentHTML("beforeend",
+      PRODUCT_CHIPS.map(n => '<button type="button" class="pick-chip" data-product="' + escapeHtml(n) + '">' + escapeHtml(n.replace(/\((세만기형|갱신형)\)$/, "")) + '</button>').join(""));
+    function markProductChip() {
+      const v = document.getElementById("in-product").value.trim();
+      document.querySelectorAll("#product-chips .pick-chip").forEach(b => b.classList.toggle("on", b.dataset.product === v));
+    }
+    markProductChip();
+    document.getElementById("product-chips").addEventListener("click", e => {
+      const b = e.target.closest("[data-product]");
+      if (!b) return;
+      document.getElementById("in-product").value = b.dataset.product;
+      markProductChip();
+      introYakLoad();
+    });
+    // 2글자 이상 치면 잠시 뒤 공시실에서 그 이름이 들어간 상품(판매 중지 상품 포함)을 찾아 목록에 넣음
+    let productTimer = 0, productRun = 0;
+    const productLookup = new Map();
+    document.getElementById("in-product").addEventListener("input", e => {
+      const q = e.target.value.trim();
+      markProductChip();
+      if (productNames.has(q) && (!e.inputType || e.inputType === "insertReplacementText")) { introYakLoad(); return; }  // 목록에서 고름
+      clearTimeout(productTimer);
+      if (q.length < 2) return;
+      productTimer = setTimeout(async () => {
+        const run = ++productRun;
+        try {
+          if (!productLookup.has(q)) {
+            const d = await hiCall("HHCA0310M38S", { searchData: q, searchDate: "", searchType: "0", searchKeyword: 1 });
+            const now = (d.slYProdList || []).map(p => cleanProdName(p.prodNm));
+            const old = (d.slNProdList || []).map(p => cleanProdName(p.prodNm));
+            productLookup.set(q, [...new Set([...now, ...old])].filter(Boolean).slice(0, 40));
+          }
+          if (run !== productRun) return;
+          const found = productLookup.get(q);
+          found.forEach(n => productNames.add(n));
+          renderProductList(found);
+        } catch (err) { /* 인터넷이 안 되면 기본 목록만 씀 */ }
+      }, 350);
+    });
+
+    // ===== 직업·쟁점 고르기 패널 =====
+    const jobPicker = { tab: "3" };
+    function renderJobPicker() {
+      const cur = document.getElementById("in-job").value.trim();
+      const big = KSCO.find(b => b[0] === jobPicker.tab) || KSCO[0];
+      let html = '<div class="src">통계청 한국표준직업분류 대분류 → 중분류 · 해당하는 직업을 누르세요 (목록에 없으면 칸에 직접 적어도 돼요)</div>';
+      html += '<div class="tabs">' + KSCO.map(b => '<button type="button" class="tab' + (b[0] === big[0] ? ' on' : '') + '" data-tab="' + b[0] + '">' + b[0] + ' ' + escapeHtml(b[1]) + '</button>').join("") + '</div>';
+      html += big[2].map(([code, name, jobs]) => '<div class="grp"><div class="grp-name">' + escapeHtml(name) + '<small>중분류 ' + code + '</small></div><div class="chips">'
+        + jobs.map(j => '<button type="button" class="pick-chip' + (j === cur ? ' on' : '') + '" data-value="' + escapeHtml(j) + '">' + escapeHtml(j) + '</button>').join("") + '</div></div>').join("");
+      document.getElementById("job-picker").innerHTML = html;
+    }
+    function renderIssuePicker() {
+      const cur = document.getElementById("in-issue").value.trim();
+      let html = '<div class="src">장기 인보험 손해사정의 대표 쟁점 · 누르면 쟁점 칸에 들어가요</div>';
+      html += ISSUE_GROUPS.map(([g, items]) => '<div class="grp"><div class="grp-name">' + escapeHtml(g) + '</div><div class="chips">'
+        + items.map(([v, desc]) => '<button type="button" class="pick-chip' + (v === cur ? ' on' : '') + '" data-value="' + escapeHtml(v) + '" title="' + escapeHtml(desc) + '">' + escapeHtml(v) + '</button>').join("") + '</div></div>').join("");
+      document.getElementById("issue-picker").innerHTML = html;
+    }
+    // 직업 칸에 해당하는 대분류 탭을 먼저 보여 줌
+    function jobTabOf(job) {
+      for (const [b, , mids] of KSCO) if (mids.some(m => m[2].includes(job))) return b;
+      return null;
+    }
+    document.getElementById("job-list").innerHTML = KSCO.flatMap(([, bn, mids]) => mids.flatMap(([, mn, jobs]) => jobs.map(j => '<option value="' + escapeHtml(j) + '">' + escapeHtml(mn) + '</option>'))).join("");
+    document.getElementById("issue-list").innerHTML = ISSUE_GROUPS.flatMap(([g, items]) => items.map(([v, desc]) => '<option value="' + escapeHtml(v) + '">' + escapeHtml(desc) + '</option>')).join("");
+    ["tl-job0", "tl-job1"].forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute("list", "job-list"); });
+
+    const PICKERS = { "job-picker": { input: "in-job", render: renderJobPicker }, "issue-picker": { input: "in-issue", render: renderIssuePicker } };
+    function togglePicker(id, open) {
+      Object.keys(PICKERS).forEach(k => {
+        const show = k === id ? (open === undefined ? document.getElementById(k).hidden : open) : false;
+        if (show) {
+          if (k === "job-picker") jobPicker.tab = jobTabOf(document.getElementById("in-job").value.trim()) || jobPicker.tab;
+          PICKERS[k].render();
+        }
+        document.getElementById(k).hidden = !show;
+        const btn = document.querySelector('[data-picker="' + k + '"]');
+        if (btn) btn.setAttribute("aria-expanded", String(show));
+      });
+    }
+    document.querySelectorAll(".pick-btn").forEach(b => b.addEventListener("click", () => togglePicker(b.dataset.picker)));
+    Object.keys(PICKERS).forEach(k => {
+      document.getElementById(k).addEventListener("click", e => {
+        const tab = e.target.closest("[data-tab]");
+        if (tab) { jobPicker.tab = tab.dataset.tab; renderJobPicker(); return; }
+        const chip = e.target.closest("[data-value]");
+        if (!chip) return;
+        document.getElementById(PICKERS[k].input).value = chip.dataset.value;
+        togglePicker(k, false);
+      });
+    });
 
     // ===== 처음 화면: 상품명·가입일을 넣으면 바로 공시실 약관을 받아 두고, 담보명은 그 약관의 담보 중에서만 고르게 함 =====
     // state: idle(상품명 없음) · loading(약관 받는 중, 담보명 잠금) · ready(약관 담보만 허용) · free(약관을 못 찾음, 직접 입력)
